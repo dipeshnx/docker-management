@@ -100,8 +100,32 @@ export class DockerWebviewProvider implements vscode.WebviewViewProvider {
       this.stopAutoRefresh();
     });
 
+    // Set HTML immediately so VS Code clears the loading bar
+    webviewView.webview.html = this.getLoadingHtml();
     this.refresh();
     this.startAutoRefresh();
+  }
+
+  private getLoadingHtml(): string {
+    return /*html*/ `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: var(--vscode-font-family);
+      color: var(--vscode-disabledForeground);
+      background: var(--vscode-sideBar-background);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>Loading containers...</body>
+</html>`;
   }
 
   private startAutoRefresh() {

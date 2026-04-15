@@ -5,7 +5,15 @@ export class DockerService {
   private docker: Docker;
 
   constructor() {
-    this.docker = new Docker({ socketPath: '/var/run/docker.sock' });
+    // If DOCKER_HOST is set, dockerode picks it up automatically.
+    // Otherwise, use the platform-appropriate default socket.
+    if (process.env.DOCKER_HOST) {
+      this.docker = new Docker();
+    } else if (process.platform === 'win32') {
+      this.docker = new Docker({ socketPath: '//./pipe/docker_engine' });
+    } else {
+      this.docker = new Docker({ socketPath: '/var/run/docker.sock' });
+    }
   }
 
   async getContainers(): Promise<ContainerItem[]> {
