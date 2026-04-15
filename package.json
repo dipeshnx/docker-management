@@ -1,0 +1,64 @@
+{
+  "name": "docker-management",
+  "displayName": "Docker Management",
+  "description": "Manage Docker containers and images from VS Code",
+  "version": "0.0.1",
+  "publisher": "docker-management",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "docker-management",
+          "title": "Docker",
+          "icon": "resources/docker.svg"
+        }
+      ]
+    },
+    "views": {
+      "docker-management": [
+        {
+          "id": "dockerManagement.panel",
+          "name": "Docker",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "dockerManagement.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "dockerManagement.refresh",
+          "when": "view == dockerManagement.panel",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js --production",
+    "watch": "node esbuild.js --watch",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/dockerode": "^3.3.31",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "dockerode": "^4.0.2"
+  }
+}
