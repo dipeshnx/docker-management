@@ -1,15 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <g fill="currentColor">
-    <!-- Container boxes -->
-    <rect x="1" y="12" width="4" height="3" rx="0.5" stroke="currentColor" stroke-width="0.5" fill="none"/>
-    <rect x="6" y="12" width="4" height="3" rx="0.5" stroke="currentColor" stroke-width="0.5" fill="none"/>
-    <rect x="11" y="12" width="4" height="3" rx="0.5" stroke="currentColor" stroke-width="0.5" fill="none"/>
-    <rect x="6" y="8.5" width="4" height="3" rx="0.5" stroke="currentColor" stroke-width="0.5" fill="none"/>
-    <rect x="11" y="8.5" width="4" height="3" rx="0.5" stroke="currentColor" stroke-width="0.5" fill="none"/>
-    <rect x="11" y="5" width="4" height="3" rx="0.5" stroke="currentColor" stroke-width="0.5" fill="none"/>
-    <!-- Whale body -->
-    <path d="M0.5 16 C0.5 16, 2 19.5, 8 19.5 C14 19.5, 17 18, 18.5 16 C20 14, 19 12, 17 12 L16 12" stroke="currentColor" stroke-width="1" fill="none"/>
-    <!-- Whale spout -->
-    <path d="M19 10 C19.5 8, 21 7, 22 8" stroke="currentColor" stroke-width="0.8" fill="none"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+  <!-- Paramount-style stars -->
+  <path d="M7 4.6l.22.62h.66l-.53.39.2.63-.55-.4-.55.4.2-.63-.53-.39h.66z"/>
+  <path d="M9.8 4l.22.62h.66l-.53.39.2.63-.55-.4-.55.4.2-.63-.53-.39h.66z"/>
+  <path d="M12.6 3.7l.22.62h.66l-.53.39.2.63-.55-.4-.55.4.2-.63-.53-.39h.66z"/>
+  <path d="M15.4 4l.22.62h.66l-.53.39.2.63-.55-.4-.55.4.2-.63-.53-.39h.66z"/>
+  <path d="M18.2 4.6l.22.62h.66l-.53.39.2.63-.55-.4-.55.4.2-.63-.53-.39h.66z"/>
+
+  <!-- Shipping container -->
+  <path d="M4 8.5h16A1.5 1.5 0 0 1 21.5 10v7A1.5 1.5 0 0 1 20 18.5H4A1.5 1.5 0 0 1 2.5 17v-7A1.5 1.5 0 0 1 4 8.5zm0 1a.5.5 0 0 0-.5.5v7a.5.5 0 0 0 .5.5h16a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.5-.5z"/>
+
+  <!-- Container ribs -->
+  <path d="M6.5 10.5h1v6h-1zm2.5 0h1v6H9zm2.5 0h1v6h-1zm2.5 0h1v6h-1zm2.5 0h1v6h-1z"/>
+
+  <!-- End frame detail -->
+  <path d="M4.8 10.5h1v6h-1zm13.4 0h1v6h-1z"/>
 </svg>
