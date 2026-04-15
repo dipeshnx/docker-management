@@ -2,14 +2,20 @@ import * as vscode from 'vscode';
 import { DockerService } from './dockerService';
 import { ContainerItem, ImageItem } from './types';
 
+const AUTO_REFRESH_INTERVAL = 5000;
+
 export class DockerWebviewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'dockerManagement.panel';
   private _view?: vscode.WebviewView;
+  private _refreshTimer?: ReturnType<typeof setInterval>;
+  private _outputChannel: vscode.OutputChannel;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly dockerService: DockerService
-  ) {}
+  ) {
+    this._outputChannel = vscode.window.createOutputChannel('Docker Logs');
+  }
 
   resolveWebviewView(webviewView: vscode.WebviewView) {
     this._view = webviewView;
@@ -37,10 +43,77 @@ export class DockerWebviewProvider implements vscode.WebviewViewProvider {
           await this.refresh();
           break;
         }
+        case 'logs': {
+          try {
+            const logs = await this.dockerService.getContainerLogs(message.id);
+            this._outputChannel.clear();
+            this._outputChannel.appendLine(`--- Logs: ${message.name} ---`);
+            this._outputChannel.append(logs);
+            this._outputChannel.show(true);
+          } catch (err: any) {
+            vscode.window.showErrorMessage(`Failed to get logs: ${err.message}`);
+          }
+          break;
+        }
+        case 'removeContainer': {
+          const answer = await vscode.window.showWarningMessage(
+            `Remove container "${message.name}"?`, { modal: true }, 'Remove'
+          );
+          if (answer === 'Remove') {
+            try {
+              await this.dockerService.removeContainer(message.id);
+            } catch (err: any) {
+              vscode.window.showErrorMessage(err.message);
+            }
+            await this.refresh();
+          }
+          break;
+        }
+        case 'removeImage': {
+          const answer = await vscode.window.showWarningMessage(
+            `Remove image "${message.name}"?`, { modal: true }, 'Remove'
+          );
+          if (answer === 'Remove') {
+            try {
+              await this.dockerService.removeImage(message.id);
+            } catch (err: any) {
+              vscode.window.showErrorMessage(err.message);
+            }
+            await this.refresh();
+          }
+          break;
+        }
       }
     });
 
+    // Start auto-refresh when visible, stop when hidden
+    webviewView.onDidChangeVisibility(() => {
+      if (webviewView.visible) {
+        this.startAutoRefresh();
+        this.refresh();
+      } else {
+        this.stopAutoRefresh();
+      }
+    });
+
+    webviewView.onDidDispose(() => {
+      this.stopAutoRefresh();
+    });
+
     this.refresh();
+    this.startAutoRefresh();
+  }
+
+  private startAutoRefresh() {
+    this.stopAutoRefresh();
+    this._refreshTimer = setInterval(() => this.refresh(), AUTO_REFRESH_INTERVAL);
+  }
+
+  private stopAutoRefresh() {
+    if (this._refreshTimer) {
+      clearInterval(this._refreshTimer);
+      this._refreshTimer = undefined;
+    }
   }
 
   async refresh() {
@@ -96,7 +169,13 @@ export class DockerWebviewProvider implements vscode.WebviewViewProvider {
       color: var(--vscode-sideBarSectionHeader-foreground);
     }
 
-    .refresh-btn {
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .icon-btn {
       background: none;
       border: none;
       color: var(--vscode-icon-foreground);
@@ -106,9 +185,11 @@ export class DockerWebviewProvider implements vscode.WebviewViewProvider {
       font-size: 14px;
       display: flex;
       align-items: center;
+      opacity: 0.7;
     }
-    .refresh-btn:hover {
+    .icon-btn:hover {
       background: var(--vscode-toolbar-hoverBackground);
+      opacity: 1;
     }
 
     .error {
@@ -139,6 +220,9 @@ export class DockerWebviewProvider implements vscode.WebviewViewProvider {
     .card:hover {
       background: var(--vscode-list-hoverBackground);
     }
+    .card:hover .card-actions {
+      opacity: 1;
+    }
 
     .card-top {
       display: flex;
@@ -168,6 +252,33 @@ export class DockerWebviewProvider implements vscode.WebviewViewProvider {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    .card-actions {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .action-btn {
+      background: none;
+      border: none;
+      color: var(--vscode-descriptionForeground);
+      cursor: pointer;
+      padding: 3px 5px;
+      border-radius: 4px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+    }
+    .action-btn:hover {
+      background: var(--vscode-toolbar-hoverBackground);
+      color: var(--vscode-foreground);
+    }
+    .action-btn.danger:hover {
+      color: #f85149;
     }
 
     .status-dot {
@@ -240,9 +351,20 @@ export class DockerWebviewProvider implements vscode.WebviewViewProvider {
       border-radius: 6px;
       padding: 8px 12px;
       margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
     }
     .image-card:hover {
       background: var(--vscode-list-hoverBackground);
+    }
+    .image-card:hover .card-actions {
+      opacity: 1;
+    }
+    .image-info {
+      flex: 1;
+      min-width: 0;
     }
     .image-name {
       font-size: 12px;
@@ -263,6 +385,25 @@ export class DockerWebviewProvider implements vscode.WebviewViewProvider {
       background: var(--vscode-widget-border, var(--vscode-sideBarSectionHeader-border, #333));
       margin: 4px 0;
     }
+
+    .auto-refresh-indicator {
+      font-size: 10px;
+      color: var(--vscode-disabledForeground);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .pulse {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #3fb950;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
   </style>
 </head>
 <body>
@@ -271,7 +412,10 @@ export class DockerWebviewProvider implements vscode.WebviewViewProvider {
 
   <div class="header">
     <h2>Containers</h2>
-    <button class="refresh-btn" onclick="refresh()" title="Refresh">&#x21bb;</button>
+    <div class="header-actions">
+      <span class="auto-refresh-indicator" title="Auto-refreshing every 5s"><span class="pulse"></span></span>
+      <button class="icon-btn" onclick="refresh()" title="Refresh now">&#x21bb;</button>
+    </div>
   </div>
 
   ${containers.length === 0 && !error
@@ -279,6 +423,7 @@ export class DockerWebviewProvider implements vscode.WebviewViewProvider {
     : containers.map((c) => {
         const isRunning = c.state === 'running';
         const friendlyName = this.friendlyName(c.name);
+        const escapedName = escapeHtml(friendlyName).replace(/'/g, "\\'");
         return /*html*/ `
           <div class="card">
             <div class="card-top">
@@ -287,7 +432,11 @@ export class DockerWebviewProvider implements vscode.WebviewViewProvider {
                   <span class="status-dot ${isRunning ? 'running' : 'stopped'}"></span>
                   ${escapeHtml(friendlyName)}
                 </div>
-                <div class="card-meta">${escapeHtml(c.image)} &middot; ${escapeHtml(c.status)}</div>
+                <div class="card-meta">${escapeHtml(c.image)} &middot; ${escapeHtml(c.status)}${c.ports ? ` &middot; ${escapeHtml(c.ports)}` : ''}</div>
+              </div>
+              <div class="card-actions">
+                <button class="action-btn" onclick="viewLogs('${c.id}', '${escapedName}')" title="View Logs">&#x1f4cb;</button>
+                <button class="action-btn danger" onclick="removeContainer('${c.id}', '${escapedName}')" title="Remove">&#x2715;</button>
               </div>
               <label class="toggle" title="${isRunning ? 'Stop' : 'Start'} container">
                 <input type="checkbox" ${isRunning ? 'checked' : ''}
@@ -310,10 +459,16 @@ export class DockerWebviewProvider implements vscode.WebviewViewProvider {
     : images.map((img) => {
         const tag = img.repoTags[0] ?? '<none>';
         const friendlyTag = this.friendlyImageName(tag);
+        const escapedTag = escapeHtml(tag).replace(/'/g, "\\'");
         return /*html*/ `
           <div class="image-card">
-            <div class="image-name">${escapeHtml(friendlyTag.name)}</div>
-            <div class="image-meta">${escapeHtml(friendlyTag.tag)} &middot; ${formatSize(img.size)}</div>
+            <div class="image-info">
+              <div class="image-name">${escapeHtml(friendlyTag.name)}</div>
+              <div class="image-meta">${escapeHtml(friendlyTag.tag)} &middot; ${formatSize(img.size)}</div>
+            </div>
+            <div class="card-actions">
+              <button class="action-btn danger" onclick="removeImage('${img.id}', '${escapedTag}')" title="Remove image">&#x2715;</button>
+            </div>
           </div>`;
       }).join('')
   }
@@ -322,7 +477,6 @@ export class DockerWebviewProvider implements vscode.WebviewViewProvider {
     const vscode = acquireVsCodeApi();
 
     function toggle(id, running) {
-      // Disable all toggles while processing
       document.querySelectorAll('.toggle input').forEach(el => el.disabled = true);
       vscode.postMessage({ command: 'toggle', id, running });
     }
@@ -330,18 +484,29 @@ export class DockerWebviewProvider implements vscode.WebviewViewProvider {
     function refresh() {
       vscode.postMessage({ command: 'refresh' });
     }
+
+    function viewLogs(id, name) {
+      vscode.postMessage({ command: 'logs', id, name });
+    }
+
+    function removeContainer(id, name) {
+      vscode.postMessage({ command: 'removeContainer', id, name });
+    }
+
+    function removeImage(id, name) {
+      vscode.postMessage({ command: 'removeImage', id, name });
+    }
   </script>
 </body>
 </html>`;
   }
 
   private friendlyName(name: string): string {
-    // Strip common prefixes/suffixes and format nicely
     return name
-      .replace(/^\//, '')           // strip leading slash
-      .replace(/_/g, ' ')           // underscores to spaces
-      .replace(/-(\d+)$/, ' ($1)')  // trailing -1 → (1)
-      .replace(/-/g, ' ')           // dashes to spaces
+      .replace(/^\//, '')
+      .replace(/_/g, ' ')
+      .replace(/-(\d+)$/, ' ($1)')
+      .replace(/-/g, ' ')
       .split(' ')
       .map(w => w.charAt(0).toUpperCase() + w.slice(1))
       .join(' ');
@@ -352,7 +517,6 @@ export class DockerWebviewProvider implements vscode.WebviewViewProvider {
       return { name: 'Untagged Image', tag: '' };
     }
     const [repo, version] = tag.split(':');
-    // Take last segment of repo path as display name
     const parts = repo.split('/');
     const shortName = parts[parts.length - 1]
       .replace(/_/g, ' ')
@@ -366,6 +530,10 @@ export class DockerWebviewProvider implements vscode.WebviewViewProvider {
       name: shortName,
       tag: `${prefix}${parts[parts.length - 1]}:${version ?? 'latest'}`,
     };
+  }
+
+  dispose() {
+    this.stopAutoRefresh();
   }
 }
 
