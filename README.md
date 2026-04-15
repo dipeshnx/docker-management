@@ -18,26 +18,6 @@ A lightweight VS Code extension to manage Docker containers and images from the 
 
 ## Install
 
-### From GitHub Release
-
-Download the `.vsix` from the [latest release](https://github.com/dipeshnx/docker-management/releases/latest) and install:
-
-```bash
-code --install-extension docker-management-0.0.1.vsix
-```
-
-Or one-liner:
-
-```bash
-curl -L https://github.com/dipeshnx/docker-management/releases/download/v0.0.1/docker-management-0.0.1.vsix -o /tmp/docker-management.vsix && code --install-extension /tmp/docker-management.vsix
-```
-
-### From VS Code
-
-1. `Cmd+Shift+P` (or `Ctrl+Shift+P`)
-2. Type **"Extensions: Install from VSIX..."**
-3. Select the `.vsix` file
-
 ### From Source
 
 ```bash
